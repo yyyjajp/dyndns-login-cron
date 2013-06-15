@@ -22,6 +22,17 @@ I haven't released this as a proper Perl module, so you'll have to install depen
 
 You can probably use `cpanm` if you have it installed and prefer.
 
+Alternatively, you can resolve dependencies on Debian:
+
+    sudo apt-get install libconfig-tiny-perl \
+        libfile-homedir-perl \
+        libfile-spec-perl \
+        libcrypt-ssleay-perl \
+        libwww-perl \
+        liblwp-protocol-https-perl \
+        libhtml-treebuilder-xpath-perl \
+        libhtml-selector-xpath-perl
+
 Configuration
 =============
 

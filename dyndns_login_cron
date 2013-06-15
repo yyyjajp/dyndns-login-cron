@@ -8,7 +8,6 @@ use File::HomeDir;
 use File::Spec;
 
 use LWP::UserAgent;
-use HTML::Query;
 
 use Getopt::Long;
 #use Data::Dumper;
@@ -58,7 +57,7 @@ scrape_page( $login_url,
             foreach my $form ( @_ )
             {
                 next unless $form->attr( 'id' ) =~ /^login/;
-                $form = HTML::Query->new( tree => $form );
+                $form = Query->new( tree => $form );
 
                 my $el = $form->query('input[name="multiform"]' );
                 next unless $el->size();
@@ -76,7 +75,7 @@ my $content = fetch_content( $login_url, 'POST',
         multiform => $nonce,
         submit    => 'Log in',
     } );
-my $q = HTML::Query->new( text => $content );
+my $q = Query->new( text => $content );
 my $title = $q->query('title')->first()->as_trimmed_text();
 
 die "Login failure? Page title: '$title'\n" unless $title =~ /My Dyn Account/i;
@@ -102,7 +101,7 @@ sub scrape_page
 
     return unless $content = fetch_content( $url );
 
-    $query = HTML::Query->new( text => $content );
+    $query = Query->new( text => $content );
 
     foreach my $rule ( keys( %scrapers ) )
     {
@@ -223,3 +222,64 @@ sub config
 
     return( $config );
 }
+
+package Query;
+
+sub new {
+    my $pkg = shift;
+    
+    eval {
+        require HTML::Query;
+    } and return HTML::Query->new(@_);
+
+    require HTML::TreeBuilder::XPath;
+    require HTML::Selector::XPath;
+    import HTML::Selector::XPath 'selector_to_xpath';
+
+    my $self = {
+        tree => undef,
+        elements => undef,
+    };
+
+    my %arg = @_;
+    if (my $text = delete $arg{text}) {
+        $self->{tree} = HTML::TreeBuilder::XPath->new_from_content($text);
+    } elsif (my $tree = delete $arg{tree}) {
+        $self->{tree} = $tree;
+    } else {
+        die 'unsupported param';
+    }
+
+    bless $self, $pkg;
+}
+
+sub query {
+    my $self = shift;
+    my $rule = shift;
+
+    my @elements = $self->{tree}->findnodes(selector_to_xpath($rule));
+    $self->{elements} = \@elements;
+
+    $self;
+}
+
+sub get_elements {
+    my $self = shift;
+
+    @{$self->{elements}};
+}
+
+sub size {
+    my $self = shift;
+
+    scalar @{$self->{elements}};
+}
+
+sub first {
+    my $self = shift;
+
+    $self->{elements} or die 'no elements';
+    $self->{elements}->[0];
+}
+
+1;
